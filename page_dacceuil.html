@@ -2,96 +2,306 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus Search</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nexus Search | OS Premium</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #050505;
             --accent: #3b82f6;
-            --search-bg: #1a1a1a;
+            --danger: #ef4444;
+            --card: #121212;
+            --text: #ffffff;
         }
 
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: none; }
+
         body {
-            margin: 0;
-            background: var(--bg);
-            color: white;
-            font-family: sans-serif;
+            background: radial-gradient(circle at center, #111 0%, #050505 100%);
+            color: var(--text);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            height: 100vh;
+            width: 100vw;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            overflow: hidden;
         }
 
         .logo {
             font-size: 3.5rem;
-            font-weight: bold;
-            margin-bottom: 2rem;
-            background: linear-gradient(to right, #3b82f6, #9333ea);
+            font-weight: 800;
+            background: linear-gradient(135deg, #60a5fa 0%, #a855f7 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            margin-bottom: 2rem;
+            pointer-events: none;
         }
 
-        /* Le formulaire qui envoie vers Google */
-        .search-form {
-            width: 90%;
-            max-width: 600px;
-        }
-
-        .search-container {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
+        .search-container { width: 90%; max-width: 500px; margin-bottom: 3rem; }
         .search-input {
-            width: 100%;
-            padding: 1.2rem 1.5rem;
-            border-radius: 50px;
-            border: 1px solid rgba(255,255,255,0.1);
-            background: var(--search-bg);
-            color: white;
-            font-size: 1.1rem;
-            outline: none;
-            transition: 0.3s;
+            width: 100%; padding: 1.2rem 1.8rem; border-radius: 40px;
+            border: 1px solid rgba(255,255,255,0.1); background: var(--card);
+            color: white; font-size: 1.1rem; outline: none;
+            transition: box-shadow 0.3s;
+        }
+        .search-input:focus { box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); border-color: var(--accent); }
+
+        .shortcuts-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem; width: 90%; max-width: 500px;
         }
 
-        .search-input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        .shortcut-item {
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            user-select: none;
         }
 
-        .search-btn {
-            position: absolute;
-            right: 10px;
-            background: var(--accent);
-            border: none;
-            color: white;
-            padding: 0.7rem 1.5rem;
-            border-radius: 40px;
-            cursor: pointer;
-            font-weight: bold;
+        .shortcut-icon {
+            width: 65px; height: 65px; background: var(--card);
+            border-radius: 20px; display: flex; align-items: center;
+            justify-content: center; font-weight: 600; border: 1px solid #333;
+            font-size: 1.2rem; pointer-events: none;
+            overflow: hidden; /* Pour que l'image ne dépasse pas des bords arrondis */
         }
 
-        .hint {
-            margin-top: 1.5rem;
-            font-size: 0.8rem;
-            opacity: 0.5;
+        .shortcut-icon img {
+            width: 32px; /* Taille standard pour un favicon propre */
+            height: 32px;
+            object-fit: contain;
         }
+
+        .shortcut-name { font-size: 0.75rem; opacity: 0.6; pointer-events: none; }
+
+        .drop-zones {
+            position: fixed; bottom: -150px; left: 0; width: 100%;
+            display: flex; justify-content: center; gap: 50px;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+            padding-bottom: 60px; z-index: 1000; pointer-events: none;
+        }
+
+        .drop-zones.visible { transform: translateY(-220px); }
+
+        .zone {
+            width: 80px; height: 80px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1);
+            font-size: 1.5rem; transition: all 0.2s;
+        }
+
+        .zone.edit { color: var(--accent); }
+        .zone.delete { color: var(--danger); }
+        .zone.active { transform: scale(1.3); background: rgba(255,255,255,0.2); border-color: currentColor; }
+
+        .dragging {
+            position: fixed; z-index: 9999; pointer-events: none;
+            transform: scale(1.2); box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        }
+
+        .modal {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(10px); z-index: 5000; align-items: center; justify-content: center;
+        }
+        .modal-content { background: #111; padding: 2rem; border-radius: 25px; width: 85%; max-width: 350px; border: 1px solid #333; }
+        .modal input { width: 100%; padding: 15px; margin: 10px 0; background: #222; border: 1px solid #444; color: white; border-radius: 12px; outline: none; }
     </style>
 </head>
 <body>
 
     <div class="logo">NEXUS</div>
 
-    <form class="search-form" action="https://www.google.com/search" method="GET">
-        <div class="search-container">
-            <input type="text" name="q" class="search-input" placeholder="Rechercher avec Google..." required autofocus>
-            <button type="submit" class="search-btn">Go</button>
-        </div>
+    <form class="search-container" id="searchForm">
+        <input type="text" id="searchInput" class="search-input" placeholder="Recherche ou URL..." autocomplete="off">
     </form>
 
-    <p class="hint">Appuyez sur Entrée pour lancer la recherche</p>
+    <div class="shortcuts-grid" id="shortcutsGrid"></div>
 
+    <div class="drop-zones" id="dropZones">
+        <div class="zone edit" id="editZone">✎</div>
+        <div class="zone delete" id="deleteZone">✕</div>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Nouveau site</h3>
+            <input type="text" id="siteName" placeholder="Nom">
+            <input type="text" id="siteUrl" placeholder="URL (ex: google.com)">
+            <button onclick="saveItem()" style="width:100%; padding:15px; background:var(--accent); border:none; border-radius:12px; color:white; font-weight:700; margin-top:10px;">Enregistrer</button>
+            <button onclick="closeModal()" style="width:100%; margin-top:15px; background:transparent; color:#666; border:none;">Annuler</button>
+        </div>
+    </div>
+
+    <script>
+        let shortcuts = JSON.parse(localStorage.getItem('nexus_shortcuts')) || [
+            { name: 'YouTube', url: 'https://youtube.com' },
+            { name: 'GitHub', url: 'https://github.com' },
+            { name: 'ChatGPT', url: 'https://chat.openai.com' }
+        ];
+
+        let dragItem = null;
+        let dragIdx = null;
+        let isDragging = false;
+        let isFinishing = false;
+        let timer;
+        let startPos = { x: 0, y: 0 };
+
+        const grid = document.getElementById('shortcutsGrid');
+        const zones = document.getElementById('dropZones');
+
+        // --- FONCTION DE RÉCUPÉRATION D'ICÔNE ---
+        function getFavicon(url) {
+            try {
+                const domain = new URL(url).hostname;
+                return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+            } catch(e) {
+                return null;
+            }
+        }
+
+        function render() {
+            grid.innerHTML = shortcuts.map((s, i) => {
+                const iconUrl = getFavicon(s.url);
+                return `
+                    <div class="shortcut-item" id="item-${i}" 
+                         ontouchstart="onStart(event, ${i})" 
+                         onmousedown="onStart(event, ${i})"
+                         onclick="handleLinkClick(event, ${i})">
+                        <div class="shortcut-icon">
+                            ${iconUrl ? `<img src="${iconUrl}" onerror="this.parentElement.innerHTML='${s.name.substring(0,2).toUpperCase()}'">` : s.name.substring(0,2).toUpperCase()}
+                        </div>
+                        <div class="shortcut-name">${s.name}</div>
+                    </div>
+                `;
+            }).join('') + `
+                <div class="shortcut-item" onclick="openModal()" style="opacity:0.4">
+                    <div class="shortcut-icon" style="border-style:dashed">+</div>
+                    <div class="shortcut-name">Ajouter</div>
+                </div>
+            `;
+        }
+
+        const searchForm = document.getElementById('searchForm');
+        searchForm.onsubmit = (e) => {
+            e.preventDefault();
+            const input = document.getElementById('searchInput').value.trim();
+            if (!input) return;
+            const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/;
+            if (urlPattern.test(input)) {
+                const finalUrl = input.startsWith('http') ? input : 'https://' + input;
+                window.location.href = finalUrl;
+            } else {
+                window.location.href = `https://www.google.com/search?q=${encodeURIComponent(input)}`;
+            }
+        };
+
+        function handleLinkClick(e, idx) {
+            if (isDragging || isFinishing) { e.preventDefault(); return; }
+            window.location.href = shortcuts[idx].url;
+        }
+
+        function onStart(e, idx) {
+            if (isFinishing) return;
+            const touch = e.touches ? e.touches[0] : e;
+            const target = e.currentTarget;
+            const rect = target.getBoundingClientRect();
+            startPos = { x: rect.left, y: rect.top };
+            timer = setTimeout(() => {
+                isDragging = true;
+                dragIdx = idx;
+                dragItem = target.cloneNode(true);
+                dragItem.classList.add('dragging');
+                dragItem.style.width = rect.width + 'px';
+                document.body.appendChild(dragItem);
+                zones.classList.add('visible');
+                updatePos(touch.clientX, touch.clientY);
+            }, 400);
+        }
+
+        function updatePos(x, y) {
+            if (!dragItem || isFinishing) return;
+            dragItem.style.left = `${x - 32}px`;
+            dragItem.style.top = `${y - 32}px`;
+            const editRect = document.getElementById('editZone').getBoundingClientRect();
+            const delRect = document.getElementById('deleteZone').getBoundingClientRect();
+            document.getElementById('editZone').classList.toggle('active', checkIn(x, y, editRect));
+            document.getElementById('deleteZone').classList.toggle('active', checkIn(x, y, delRect));
+        }
+
+        function checkIn(x, y, r) { return x > r.left && x < r.right && y > r.top && y < r.bottom; }
+
+        const handleMove = (e) => {
+            if (!isDragging || isFinishing) { clearTimeout(timer); return; }
+            if (e.cancelable) e.preventDefault();
+            const touch = e.touches ? e.touches[0] : e;
+            updatePos(touch.clientX, touch.clientY);
+        };
+
+        const handleEnd = (e) => {
+            clearTimeout(timer);
+            if (!isDragging || !dragItem || isFinishing) return;
+            const touch = e.changedTouches ? e.changedTouches[0] : e;
+            const x = touch.clientX;
+            const y = touch.clientY;
+            isFinishing = true;
+            const editRect = document.getElementById('editZone').getBoundingClientRect();
+            const delRect = document.getElementById('deleteZone').getBoundingClientRect();
+
+            if (checkIn(x, y, delRect)) {
+                shortcuts.splice(dragIdx, 1);
+                localStorage.setItem('nexus_shortcuts', JSON.stringify(shortcuts));
+                cleanup();
+                render();
+                isFinishing = false;
+            } else if (checkIn(x, y, editRect)) {
+                const i = dragIdx;
+                cleanup();
+                openModal(i);
+                isFinishing = false;
+            } else {
+                dragItem.style.transition = "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
+                dragItem.style.left = `${startPos.x}px`;
+                dragItem.style.top = `${startPos.y}px`;
+                dragItem.style.transform = "scale(1)";
+                setTimeout(() => { cleanup(); render(); isFinishing = false; }, 400);
+            }
+        };
+
+        function cleanup() {
+            isDragging = false;
+            if (dragItem) dragItem.remove();
+            dragItem = null;
+            dragIdx = null;
+            zones.classList.remove('visible');
+        }
+
+        window.addEventListener('touchmove', handleMove, { passive: false });
+        window.addEventListener('touchend', handleEnd);
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
+
+        let editIdx = null;
+        function openModal(idx = null) {
+            editIdx = idx;
+            document.getElementById('modal').style.display = 'flex';
+            document.getElementById('siteName').value = idx !== null ? shortcuts[idx].name : '';
+            document.getElementById('siteUrl').value = idx !== null ? shortcuts[idx].url : '';
+        }
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+        function saveItem() {
+            const name = document.getElementById('siteName').value;
+            let url = document.getElementById('siteUrl').value.trim();
+            if (name && url) {
+                if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+                if (editIdx !== null) shortcuts[editIdx] = { name, url };
+                else shortcuts.push({ name, url });
+                localStorage.setItem('nexus_shortcuts', JSON.stringify(shortcuts));
+                render();
+                closeModal();
+            }
+        }
+        render();
+    </script>
 </body>
 </html>
