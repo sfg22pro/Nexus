@@ -13,6 +13,12 @@
             --card: #121212;
             --text: #ffffff;
             --note: #1a1a1a;
+            
+            /* Couleurs pour l'animation du logo */
+            --color-1: #60a5fa; /* Bleu */
+            --color-2: #a855f7; /* Violet */
+            --color-3: #ec4899; /* Rose */
+            --color-4: #34d399; /* Vert Émeraude */
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: none; }
@@ -36,14 +42,32 @@
             to { opacity: 1; transform: translateY(0); filter: blur(0); }
         }
 
+        /* --- LOGO ANIMÉ (Nouveau) --- */
+        @keyframes nexusFlow {
+            0%, 100% { background-position: 0% 50%; }
+            25% { background-position: 50% 100%; }
+            50% { background-position: 100% 50%; }
+            75% { background-position: 50% 0%; }
+        }
+
         .logo {
             font-size: 3rem;
             font-weight: 800;
-            background: linear-gradient(135deg, #60a5fa 0%, #a855f7 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            
+            /* Création du dégradé animé */
+            background: linear-gradient(-45deg, var(--color-1), var(--color-2), var(--color-3), var(--color-4), var(--color-1));
+            background-size: 400% 400%; /* Taille du dégradé pour qu'il puisse "couler" */
+            
+            -webkit-background-clip: text; /* Coupe l'arrière-plan selon le texte */
+            -webkit-text-fill-color: transparent; /* Rend le texte transparent pour voir l'arrière-plan */
+            
             margin-bottom: 1.5rem;
-            animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            pointer-events: none;
+            
+            /* Animations combinées : entrée et flux de couleurs */
+            animation: 
+                fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards,
+                nexusFlow 8s ease-in-out infinite; /* Animation fluide et infinie */
         }
 
         .search-container { 
@@ -198,8 +222,6 @@
                     const start = noteArea.selectionStart;
                     const end = noteArea.selectionEnd;
                     const fullText = noteArea.value;
-                    
-                    // On insère le texte à la position du curseur
                     noteArea.value = fullText.substring(0, start) + text + fullText.substring(end);
                     saveNote();
                     noteArea.focus();
@@ -268,6 +290,7 @@
                 dragItem.classList.add('dragging');
                 dragItem.style.width = r.width + 'px';
                 dragItem.style.animation = "none";
+                dragItem.style.opacity = "1";
                 document.body.appendChild(dragItem);
                 zones.classList.add('visible');
                 updatePos(t.clientX, t.clientY);
